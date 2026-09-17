@@ -93,8 +93,11 @@ class KuwoApi(private val client: HttpClient) {
                 val album = (item["ALBUM"]?.jsonPrimitive?.content ?: "").replace("&nbsp;", " ")
                 val albumId = item["ALBUMID"]?.jsonPrimitive?.content ?: ""
                 val duration = item["DURATION"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0
-                val cover = if (albumId.isNotEmpty() && albumId != "0")
-                    "https://img4.kuwo.cn/star/albumcover/300/$albumId.jpg" else ""
+                val albumPicShort = item["web_albumpic_short"]?.jsonPrimitive?.content ?: ""
+                val picPath = albumPicShort.substringAfter("/", "")
+                val cover = if (picPath.isNotEmpty())
+                    "https://img2.kuwo.cn/star/albumcover/500/$picPath"
+                else ""
                 Song(
                     id = cleanRid, name = name, artist = artist,
                     album = album, albumId = albumId, albumCover = cover,
@@ -140,39 +143,40 @@ class KuwoApi(private val client: HttpClient) {
         }
     }
 
-    /** Fix Kuwo's non-standard single-quote JSON to valid JSON */
+    /** Fix Kuwo's non-standard mixed-quote JSON to valid JSON.
+     *  Kuwo uses single quotes for most fields but double quotes for some
+     *  (e.g. web_albumpic_short). Convert single-quote delimiters to double
+     *  quotes while preserving already double-quoted sections verbatim. */
     private fun fixKuwoJson(text: String): String {
-        val trimmed = text.trim()
-        // If it's already valid JSON (starts with { and can be parsed), return as-is
-        if (trimmed.startsWith("{")) {
-            // Try parsing directly first
-            try {
-                Json { isLenient = true }.parseToJsonElement(trimmed)
-                return trimmed.replace("&nbsp;", " ")
-            } catch (_: Exception) { }
-        }
-        // Convert single quotes to double quotes
-        val sb = StringBuilder()
-        var inSingle = false
-        var inDouble = false
-        var prev = '\u0000'
-        for (c in trimmed) {
-            when {
-                c == '\'' && !inDouble && prev != '\\' -> {
-                    inSingle = !inSingle
-                    sb.append('"')
+        val raw = text.trim()
+        val sb = StringBuilder(raw.length)
+        var i = 0
+        while (i < raw.length) {
+            val c = raw[i]
+            if (c == '\'') {
+                sb.append('"')
+                i++
+            } else if (c == '"') {
+                // Already double-quoted section — copy until closing "
+                sb.append(c)
+                i++
+                while (i < raw.length && raw[i] != '"') {
+                    sb.append(raw[i])
+                    i++
                 }
-                c == '"' && !inSingle && prev != '\\' -> {
-                    inDouble = !inDouble
-                    sb.append(c)
+                if (i < raw.length) {
+                    sb.append(raw[i]) // closing "
+                    i++
                 }
-                else -> sb.append(c)
+            } else {
+                sb.append(c)
+                i++
             }
-            prev = c
         }
-        return sb.toString().replace("&nbsp;", " ")
+        return sb.toString()
+            .replace("&nbsp;", " ")
+            .replace("&amp;", "&")
     }
-
     companion object {
         val CATEGORY_TAGS = mapOf(
             "推荐" to 0,
