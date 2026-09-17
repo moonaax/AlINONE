@@ -55,6 +55,7 @@ kotlin {
 
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
+            implementation("androidx.activity:activity-compose:1.9.3")
         }
 
         iosMain.dependencies {
