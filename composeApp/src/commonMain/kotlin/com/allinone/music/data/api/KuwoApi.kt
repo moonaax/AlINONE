@@ -11,15 +11,21 @@ class KuwoApi(private val client: HttpClient) {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     suspend fun searchSongs(keyword: String, page: Int = 1, pageSize: Int = 20): List<Song> {
-        val response = client.get("http://search.kuwo.cn/r.s") {
+        val response = client.get("https://search.kuwo.cn/r.s") {
             parameter("all", keyword)
             parameter("ft", "music")
-            parameter("itemset", "web_2013")
             parameter("client", "kt")
-            parameter("pn", page.toString())
+            parameter("pn", (page - 1).toString())
             parameter("rn", pageSize.toString())
             parameter("rformat", "json")
             parameter("encoding", "utf8")
+            parameter("vipver", "1")
+            parameter("ver", "kwplayer_ar_12.2.2.0")
+            parameter("strategy", "2012")
+            parameter("vermerge", "1")
+            parameter("mobi", "1")
+            parameter("issubtitle", "1")
+            parameter("cluster", "0")
         }
         val text = response.bodyAsText()
         return parseSearchSongs(text)
