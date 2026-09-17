@@ -14,7 +14,7 @@ import com.allinone.music.ui.home.HomeScreen
 import com.allinone.music.ui.search.SearchScreen
 
 @Composable
-fun MainScreen() {
+fun MainScreen(onBack: () -> Unit = {}) {
     val repository = remember {
         val client = HttpClientFactory.create()
         MusicRepository(KuwoApi(client))
@@ -42,7 +42,7 @@ fun MainScreen() {
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             when (selectedTab) {
-                0 -> HomeScreen(repository = repository)
+                0 -> HomeScreen(repository = repository, onBack = onBack)
                 1 -> SearchScreen(repository = repository)
             }
         }
